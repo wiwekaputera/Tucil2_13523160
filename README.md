@@ -49,7 +49,9 @@ Program ini merupakan aplikasi CLI kompresi gambar yang menggunakan algoritma di
    make run
    ```
    atau secara langsung:
+   ```bash
    ./bin/tucil2_13523160
+   ```
 
 ## Identitas
 
