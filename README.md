@@ -29,18 +29,15 @@ Program ini merupakan aplikasi CLI kompresi gambar yang menggunakan algoritma di
 1. Buka direktori root proyek (tempat Makefile berada) pada terminal Unix-like.
 2. Jalankan perintah:
    ```bash
-   make clean
-   ```
-   ```bash
    make
    ```
    Perintah tersebut akan mengkompilasi seluruh source code dan menghasilkan executable di folder `bin`.
 
 ## d. Cara Menjalankan dan Menggunakan Program
 **Linux:**
-1. Jalankan program dengan perintah:
+1. Pada direktori build, jalankan program dengan perintah:
     ```bash
-   ./build/tucil2_13523160
+   ./tucil2_13523160
    ```
 **Windows:**
 1. Pastikan file `FreeImage.dll` ada di folder `bin` program ini.
