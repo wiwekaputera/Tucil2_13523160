@@ -38,40 +38,7 @@ QuadTree::~QuadTree()
     root = nullptr;
 }
 
-void QuadTree::reconstructAtLevel(
-    const QuadNode *node,
-    int cutoffDepth, int currentDepth,
-    unsigned char *outBuffer, int fullWidth)
-{
-    if (!node)
-        return;
-    // If we're at a leaf or we've reached the cutoff depth,
-    // treat this node as final.
-    if (node->isLeaf || currentDepth == cutoffDepth)
-    {
-        unsigned char rVal = static_cast<unsigned char>(node->meanR + 0.5);
-        unsigned char gVal = static_cast<unsigned char>(node->meanG + 0.5);
-        unsigned char bVal = static_cast<unsigned char>(node->meanB + 0.5);
-        for (int row = node->y; row < node->y + node->height; row++)
-        {
-            for (int col = node->x; col < node->x + node->width; col++)
-            {
-                int idx = (row * fullWidth + col) * 3;
-                outBuffer[idx + 0] = bVal;
-                outBuffer[idx + 1] = gVal;
-                outBuffer[idx + 2] = rVal;
-            }
-        }
-        return;
-    }
-    // Otherwise, recursively process children.
-    for (int i = 0; i < 4; i++)
-    {
-        reconstructAtLevel(node->children[i], cutoffDepth, currentDepth + 1, outBuffer, fullWidth);
-    }
-}
-
-// Builds the quadtree without recording intermediate frames.
+// Builds the quadtree.
 void QuadTree::build(
     const unsigned char *imgData,
     int width, int height,
@@ -84,16 +51,14 @@ void QuadTree::build(
     // Pass nullptr for frames because we aren’t capturing them
     root = buildRecursive(imgData, width, height,
                           0, 0, width, height,
-                          threshold, minBlockSize, errorMethod,
-                          nullptr);
+                          threshold, minBlockSize, errorMethod);
 }
 
 QuadNode *QuadTree::buildRecursive(
     const unsigned char *imgData,
     int fullWidth, int fullHeight,
     int x, int y, int w, int h,
-    double threshold, int minBlockSize, int errorMethod,
-    std::vector<std::vector<uint8_t>> *frames /*= nullptr*/)
+    double threshold, int minBlockSize, int errorMethod)
 {
     // Create a node at (x, y) with dimensions w x h
     QuadNode *node = new QuadNode(x, y, w, h);
@@ -164,26 +129,22 @@ QuadNode *QuadTree::buildRecursive(
         imgData, fullWidth, fullHeight,
         x, y,
         halfW, halfH,
-        threshold, minBlockSize, errorMethod,
-        frames);
+        threshold, minBlockSize, errorMethod);
     node->children[1] = buildRecursive(
         imgData, fullWidth, fullHeight,
         x + halfW, y,
         w - halfW, halfH,
-        threshold, minBlockSize, errorMethod,
-        frames);
+        threshold, minBlockSize, errorMethod);
     node->children[2] = buildRecursive(
         imgData, fullWidth, fullHeight,
         x, y + halfH,
         halfW, h - halfH,
-        threshold, minBlockSize, errorMethod,
-        frames);
+        threshold, minBlockSize, errorMethod);
     node->children[3] = buildRecursive(
         imgData, fullWidth, fullHeight,
         x + halfW, y + halfH,
         w - halfW, h - halfH,
-        threshold, minBlockSize, errorMethod,
-        frames);
+        threshold, minBlockSize, errorMethod);
 
     return node;
 }
@@ -195,9 +156,9 @@ void QuadTree::reconstructRecursive(const QuadNode *node, unsigned char *outBuff
         return;
     if (node->isLeaf)
     {
-        unsigned char rVal = (unsigned char)(node->meanR + 0.5);
-        unsigned char gVal = (unsigned char)(node->meanG + 0.5);
-        unsigned char bVal = (unsigned char)(node->meanB + 0.5);
+        unsigned char rVal = static_cast<unsigned char>(node->meanR + 0.5);
+        unsigned char gVal = static_cast<unsigned char>(node->meanG + 0.5);
+        unsigned char bVal = static_cast<unsigned char>(node->meanB + 0.5);
 
         for (int row = node->y; row < node->y + node->height; row++)
         {
@@ -265,7 +226,37 @@ int QuadTree::getNodeCount(const QuadNode *node) const
     return count;
 }
 
-// Usage: Create an image for each level.
+void QuadTree::reconstructAtLevel(
+    const QuadNode *node,
+    int cutoffDepth, int currentDepth,
+    unsigned char *outBuffer, int fullWidth)
+{
+    if (!node)
+        return;
+    if (node->isLeaf || currentDepth == cutoffDepth)
+    {
+        unsigned char rVal = static_cast<unsigned char>(node->meanR + 0.5);
+        unsigned char gVal = static_cast<unsigned char>(node->meanG + 0.5);
+        unsigned char bVal = static_cast<unsigned char>(node->meanB + 0.5);
+        for (int row = node->y; row < node->y + node->height; row++)
+        {
+            for (int col = node->x; col < node->x + node->width; col++)
+            {
+                int idx = (row * fullWidth + col) * 3;
+                outBuffer[idx + 0] = bVal;
+                outBuffer[idx + 1] = gVal;
+                outBuffer[idx + 2] = rVal;
+            }
+        }
+        return;
+    }
+    for (int i = 0; i < 4; i++)
+    {
+        reconstructAtLevel(node->children[i], cutoffDepth, currentDepth + 1, outBuffer, fullWidth);
+    }
+}
+
+// Create an image for each QuadTree level.
 vector<vector<uint8_t>> QuadTree::captureFramesPerLevel(int width, int height)
 {
     int totalDepth = getTreeDepth();

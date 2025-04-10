@@ -8,8 +8,8 @@ Program ini merupakan aplikasi CLI kompresi gambar yang menggunakan algoritma di
 
 - **Compiler:** g++ (atau compiler C++ yang kompatibel)
 - **Library Eksternal:** [`FreeImage`](http://freeimage.sourceforge.net/)
-  - Linux: install via `sudo apt install libfreeimage-dev`
-  - Windows: pastikan `FreeImage.dll` tersedia di folder `bin`
+  - **Linux:** install via `sudo apt install libfreeimage-dev`. Pada Linux, FreeImage biasanya terinstal di direktori sistem (include di /usr/include atau sejenisnya, dan library di /usr/lib atau /usr/lib64), jadi tidak perlu mengatur folder secara manual.
+  - **Windows:** install FreeImage dan tempatkan folder `include` di `C:/FreeImage/include` dan folder `lib` di `C:/FreeImage/lib`. Selain itu, pastikan file `FreeImage.dll` ada di folder `bin`.
 - **Sistem Operasi:** Windows atau Linux
 
 ## c. Cara Kompilasi

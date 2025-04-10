@@ -12,31 +12,14 @@
 
 using namespace std;
 
-// Debugging function
-void printFramePixels(const vector<uint8_t> &frame, int width, int height, int numPixelsToPrint = 10)
-{
-    // Each pixel consists of 3 bytes.
-    int totalPixels = width * height;
-    int pixelsToPrint = (numPixelsToPrint < totalPixels) ? numPixelsToPrint : totalPixels;
-
-    for (int i = 0; i < pixelsToPrint; i++)
-    {
-        int idx = i * 3;
-        int blue = static_cast<int>(frame[idx + 0]);
-        int green = static_cast<int>(frame[idx + 1]);
-        int red = static_cast<int>(frame[idx + 2]);
-        cout << "Pixel " << i << ": B=" << blue << " G=" << green << " R=" << red << "\n";
-    }
-}
-
-// Check if file exists using stat.
+// Check if file exists.
 bool fileExists(const string &filename)
 {
     struct stat buffer;
     return (stat(filename.c_str(), &buffer) == 0);
 }
 
-// Simple function to convert a string to lower-case.
+// Convert a string to lower-case.
 string toLower(const string &s)
 {
     string result;
@@ -100,7 +83,7 @@ int main()
     while (!validThreshold)
     {
         if (errorMethodChoice == 1)
-            cout << "Masukkan nilai threshold untuk Variance (0-16384): ";
+            cout << "Masukkan nilai threshold untuk Variance (0-65025): ";
         else if (errorMethodChoice == 2 || errorMethodChoice == 3)
             cout << "Masukkan nilai threshold untuk MAD/Max Pixel Difference (0-255): ";
         else if (errorMethodChoice == 4)
@@ -109,9 +92,9 @@ int main()
         switch (errorMethodChoice)
         {
         case 1:
-            validThreshold = (threshold >= 0 && threshold <= 16384);
+            validThreshold = (threshold >= 0 && threshold <= 65025);
             if (!validThreshold)
-                cout << "Masukan tidak valid. Untuk Variance, masukkan nilai antara 0 dan 16384.\n";
+                cout << "Masukan tidak valid. Untuk Variance, masukkan nilai antara 0 dan 65025.\n";
             break;
         case 2:
         case 3:
@@ -204,10 +187,8 @@ int main()
 
     // Build quadtree and record frames.
     // Frame: vector<uint8_t> = an image of every QuadTree level
-    vector<vector<uint8_t>> frames;
     QuadTree qt;
     qt.build(imgData, width, height, threshold, minBlockSize, errorMethodChoice);
-
     vector<vector<uint8_t>> levelFrames = qt.captureFramesPerLevel(width, height);
 
     // Push the last frame 3 more times so that the final image appears longer
@@ -218,14 +199,6 @@ int main()
             levelFrames.push_back(levelFrames.back());
         }
     }
-
-    // Debugging statement
-    // if (!frames.empty())
-    // {
-    //     cout << "First frame pixel values:\n";
-    //     printFramePixels(frames[0], width, height, 10);
-    // }
-    // cout << "EXECUTED" << endl;
 
     // Reconstruct compressed image.
     unsigned char *compressedData = new unsigned char[width * height * 3];
@@ -248,6 +221,7 @@ int main()
     delete[] compressedData;
     delete[] imgData;
 
+    // End time (compression process)
     clock_t endTime = clock();
     double executionTime = double(endTime - startTime) / CLOCKS_PER_SEC;
 
@@ -255,6 +229,7 @@ int main()
     if (!createGIF(levelFrames, width, height, 50, outputGIFPath))
         cerr << "GIF creation failed." << "\n";
 
+    // End time (GIF creation process)
     endTime = clock();
     double GIFexecutionTime = double(endTime - startTime) / CLOCKS_PER_SEC;
 
