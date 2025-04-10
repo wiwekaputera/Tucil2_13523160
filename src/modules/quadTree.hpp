@@ -2,6 +2,10 @@
 #define QUADTREE_HPP
 
 #include "errorMethods.hpp"
+#include <vector>
+#include <cstdint> // uint8_t
+
+using namespace std;
 
 struct QuadNode
 {
@@ -20,6 +24,12 @@ class QuadTree
 public:
     QuadTree();
     ~QuadTree();
+
+    void reconstructAtLevel(
+        const QuadNode *node, int cutoffDepth, int currentDepth,
+        unsigned char *outBuffer, int fullWidth);
+
+    vector<vector<uint8_t>> captureFramesPerLevel(int width, int height);
 
     // Build the quadtree from an RGB image buffer.
     // imgData: pointer to image data (RGB, row-major; 3 bytes per pixel).
@@ -42,7 +52,8 @@ private:
         const unsigned char *imgData,
         int fullWidth, int fullHeight,
         int x, int y, int w, int h,
-        double threshold, int minBlockSize, int errorMethod);
+        double threshold, int minBlockSize, int errorMethod,
+        vector<vector<uint8_t>> *frames);
 
     // Recursive helper to reconstruct image from quadtree leaves.
     static void reconstructRecursive(const QuadNode *node, unsigned char *outBuffer, int fullWidth);

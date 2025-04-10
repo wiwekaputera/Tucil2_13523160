@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 #include <ctime>
 #include <limits>
 #include <sys/stat.h>
@@ -7,23 +8,42 @@
 #include "modules/imageUtils.hpp"
 #include "modules/quadTree.hpp"
 #include "modules/errorMethods.hpp"
+#include "modules/gif_maker.hpp"
 
 using namespace std;
 
+// Debugging function
+void printFramePixels(const vector<uint8_t> &frame, int width, int height, int numPixelsToPrint = 10)
+{
+    // Each pixel consists of 3 bytes.
+    int totalPixels = width * height;
+    int pixelsToPrint = (numPixelsToPrint < totalPixels) ? numPixelsToPrint : totalPixels;
+
+    for (int i = 0; i < pixelsToPrint; i++)
+    {
+        int idx = i * 3;
+        int blue = static_cast<int>(frame[idx + 0]);
+        int green = static_cast<int>(frame[idx + 1]);
+        int red = static_cast<int>(frame[idx + 2]);
+        cout << "Pixel " << i << ": B=" << blue << " G=" << green << " R=" << red << "\n";
+    }
+}
+
 int main()
 {
+    // Initialize FreeImage.
     FreeImage_Initialise();
 
-    cout << "====================" << "\n";
-    cout << "        INPUT       " << "\n";
-    cout << "====================" << "\n";
+    cout << "====================\n";
+    cout << "        INPUT       \n";
+    cout << "====================\n";
 
-    // 1. INPUT: Absolute path of the image to compress.
+    // 1. Input: Image path.
     string inputImagePath;
     cout << "Masukkan path gambar yang akan dikompres: ";
     getline(cin, inputImagePath);
 
-    // 2. INPUT: Error calculation method.
+    // 2. Input: Error calculation method.
     int errorMethodChoice;
     cout << "Pilihan Metode Kalkulasi Eror:\n";
     cout << "1: Variance\n";
@@ -38,7 +58,7 @@ int main()
         return 1;
     }
 
-    // 3. INPUT: Threshold error.
+    // 3. Input: Threshold.
     double threshold;
     bool validThreshold = false;
     while (!validThreshold)
@@ -53,42 +73,39 @@ int main()
         switch (errorMethodChoice)
         {
         case 1:
-            // Batas variance yang lebih realistis
-            if (threshold >= 0 && threshold <= 16384)
-                validThreshold = true;
-            else
+            validThreshold = (threshold >= 0 && threshold <= 16384);
+            if (!validThreshold)
                 cout << "Masukan tidak valid. Untuk Variance, masukkan nilai antara 0 dan 16384.\n";
             break;
         case 2:
         case 3:
-            if (threshold >= 0 && threshold <= 255)
-                validThreshold = true;
-            else
+            validThreshold = (threshold >= 0 && threshold <= 255);
+            if (!validThreshold)
                 cout << "Masukan tidak valid. Untuk MAD/Max Pixel Difference, masukkan nilai antara 0 dan 255.\n";
             break;
         case 4:
-            if (threshold >= 0 && threshold <= 8)
-                validThreshold = true;
-            else
+            validThreshold = (threshold >= 0 && threshold <= 8);
+            if (!validThreshold)
                 cout << "Masukan tidak valid. Untuk Entropy, masukkan nilai antara 0 dan 8.\n";
             break;
         }
     }
 
-    // 4. INPUT: Minimum block size.
+    // 4. Input: Minimum block size.
     int minBlockSize;
     cout << "Masukkan minimum block size: ";
     cin >> minBlockSize;
 
-    // 5. INPUT: Output image path.
+    // 5. Input: Output image path.
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     string outputImagePath;
     cout << "Masukkan path output image: ";
     getline(cin, outputImagePath);
 
+    // Start time
     clock_t startTime = clock();
 
-    // Load image.
+    // Load image using FreeImage.
     int width = 0, height = 0;
     FIBITMAP *converted = loadImageAs24Bit(inputImagePath, width, height);
     if (!converted)
@@ -97,9 +114,8 @@ int main()
         return 1;
     }
 
-    // Copy FI image data to 1D array imgData.
+    // Copy image data into a 1D array and convert BGR -> RGB.
     unsigned char *imgData = new unsigned char[width * height * 3];
-    // Convert scanlines from bottom-to-top and BGR -> RGB.
     for (int y = 0; y < height; y++)
     {
         BYTE *bits = FreeImage_GetScanLine(converted, y);
@@ -117,16 +133,36 @@ int main()
     // Get original file size.
     long originalSize = getFileSize(inputImagePath);
 
-
-    // Build the quadtree using the selected error method.
+    // Build quadtree and record frames.
+    // Frame: vector<uint8_t> = an image of every QuadTree level
+    vector<vector<uint8_t>> frames;
     QuadTree qt;
     qt.build(imgData, width, height, threshold, minBlockSize, errorMethodChoice);
 
-    // Reconstruct the compressed image.
+    vector<vector<uint8_t>> levelFrames = qt.captureFramesPerLevel(width, height);
+
+    // Push the last frame 5 more times so that the final image appears longer
+    if (!levelFrames.empty())
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            levelFrames.push_back(levelFrames.back());
+        }
+    }
+
+    // Debugging statement
+    // if (!frames.empty())
+    // {
+    //     cout << "First frame pixel values:\n";
+    //     printFramePixels(frames[0], width, height, 10);
+    // }
+    // cout << "EXECUTED" << endl;
+
+    // Reconstruct compressed image.
     unsigned char *compressedData = new unsigned char[width * height * 3];
     qt.reconstructImage(compressedData, width, height);
 
-    // Determine output format based on input's extension.
+    // Determine output format.
     FREE_IMAGE_FORMAT outFIF = FreeImage_GetFIFFromFilename(inputImagePath.c_str());
     if (outFIF == FIF_UNKNOWN)
     {
@@ -136,27 +172,33 @@ int main()
 
     // Save the compressed image.
     FIBITMAP *outBmp = FreeImage_ConvertFromRawBits(compressedData, width, height, width * 3, 24, 0xFF0000, 0x00FF00, 0x0000FF);
-
     if (!FreeImage_Save(outFIF, outBmp, outputImagePath.c_str(), 0))
-    {
         cerr << "Error saving compressed image to " << outputImagePath << "\n";
-    }
     FreeImage_Unload(outBmp);
+
     delete[] compressedData;
     delete[] imgData;
 
     clock_t endTime = clock();
     double executionTime = double(endTime - startTime) / CLOCKS_PER_SEC;
 
+    // Create animated GIF from recorded frames.
+    if (!createAnimatedGif(levelFrames, width, height, 50, "quadtree_build.gif"))
+        cerr << "GIF creation failed." << "\n";
+
+    endTime = clock();
+    double GIFexecutionTime = double(endTime - startTime) / CLOCKS_PER_SEC;
+
     long compressedSize = getFileSize(outputImagePath);
     double compressionPercentage = 0.0;
     if (originalSize > 0)
         compressionPercentage = (1.0 - double(compressedSize) / originalSize) * 100.0;
-    
-    cout << "\n" << "====================" << "\n";
-    cout << "       OUTPUT       " << "\n";
-    cout << "====================" << "\n";
-    cout << "Waktu Eksekusi (s): " << executionTime << "\n";
+
+    cout << "\n====================\n";
+    cout << "       OUTPUT       \n";
+    cout << "====================\n";
+    cout << "Waktu Eksekusi Kompresi (s): " << executionTime << "\n";
+    cout << "Waktu Eksekusi hingga Pembuatan GIF (s): " << GIFexecutionTime << "\n";
     cout << "Ukuran Gambar Sebelum (bytes): " << originalSize << "\n";
     cout << "Ukuran Gambar Setelah (bytes): " << compressedSize << "\n";
     cout << "Persentase Kompresi: " << compressionPercentage << "%\n";

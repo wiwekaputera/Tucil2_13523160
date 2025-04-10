@@ -1,6 +1,9 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -O2 -IC:/FreeImage/include
-LDFLAGS = -LC:/FreeImage/lib -lfreeimage
+CXXFLAGS = -std=c++17 -Wall -O2 \
+           -IC:/FreeImage/include \
+
+LDFLAGS = -LC:/FreeImage/lib -lfreeimage \
+
 
 SRC_DIR = src
 MODULES_DIR = $(SRC_DIR)/modules
@@ -27,6 +30,3 @@ $(OBJ_DIR)/%.o: $(MODULES_DIR)/%.cpp
 
 run: $(EXEC)
 	./$(EXEC)
-
-clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)

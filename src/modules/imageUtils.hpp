@@ -13,4 +13,6 @@ long getFileSize(const std::string &filePath);
 // Returns nullptr if error.
 FIBITMAP *loadImageAs24Bit(const std::string &filePath, int &width, int &height);
 
+void flipImageVertically(uint8_t* data, int width, int height);
+
 #endif // IMAGE_UTILS_HPP

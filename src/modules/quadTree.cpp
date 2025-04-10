@@ -1,8 +1,11 @@
 #include "quadTree.hpp"
 #include "errorMethods.hpp"
-#include <cstring>
+#include "imageUtils.hpp"
+#include <cstring> // memcpy, memset
 #include <cstdlib>
 #include <cmath>
+#include <vector>
+#include <cstdint> // uint8_t
 
 using namespace std;
 
@@ -24,7 +27,10 @@ QuadNode::~QuadNode()
 }
 
 // QuadTree Implementation
-QuadTree::QuadTree() : root(nullptr) {}
+QuadTree::QuadTree()
+    : root(nullptr)
+{
+}
 
 QuadTree::~QuadTree()
 {
@@ -32,33 +38,77 @@ QuadTree::~QuadTree()
     root = nullptr;
 }
 
+void QuadTree::reconstructAtLevel(
+    const QuadNode *node,
+    int cutoffDepth, int currentDepth,
+    unsigned char *outBuffer, int fullWidth)
+{
+    if (!node)
+        return;
+    // If we're at a leaf or we've reached the cutoff depth,
+    // treat this node as final.
+    if (node->isLeaf || currentDepth == cutoffDepth)
+    {
+        unsigned char rVal = static_cast<unsigned char>(node->meanR + 0.5);
+        unsigned char gVal = static_cast<unsigned char>(node->meanG + 0.5);
+        unsigned char bVal = static_cast<unsigned char>(node->meanB + 0.5);
+        for (int row = node->y; row < node->y + node->height; row++)
+        {
+            for (int col = node->x; col < node->x + node->width; col++)
+            {
+                int idx = (row * fullWidth + col) * 3;
+                outBuffer[idx + 0] = bVal;
+                outBuffer[idx + 1] = gVal;
+                outBuffer[idx + 2] = rVal;
+            }
+        }
+        return;
+    }
+    // Otherwise, recursively process children.
+    for (int i = 0; i < 4; i++)
+    {
+        reconstructAtLevel(node->children[i], cutoffDepth, currentDepth + 1, outBuffer, fullWidth);
+    }
+}
+
+// Builds the quadtree without recording intermediate frames.
 void QuadTree::build(
-    const unsigned char *imgData, int width, int height,
+    const unsigned char *imgData,
+    int width, int height,
     double threshold, int minBlockSize, int errorMethod)
 {
+    // Clean up old tree if any
     delete root;
-    root = buildRecursive(imgData, width, height, 0, 0, width, height, threshold, minBlockSize, errorMethod);
+    root = nullptr;
+
+    // Pass nullptr for frames because we aren’t capturing them
+    root = buildRecursive(imgData, width, height,
+                          0, 0, width, height,
+                          threshold, minBlockSize, errorMethod,
+                          nullptr);
 }
 
 QuadNode *QuadTree::buildRecursive(
     const unsigned char *imgData,
     int fullWidth, int fullHeight,
     int x, int y, int w, int h,
-    double threshold, int minBlockSize, int errorMethod)
+    double threshold, int minBlockSize, int errorMethod,
+    std::vector<std::vector<uint8_t>> *frames /*= nullptr*/)
 {
-    // Create a new node at (x, y) with dimensions w x h.
+    // Create a node at (x, y) with dimensions w x h
     QuadNode *node = new QuadNode(x, y, w, h);
-    // Copy block into temporary buffer for error calculation.
+
     int numPixels = w * h;
+    // Copy the block into a temporary buffer for error calculation
     unsigned char *blockBuffer = new unsigned char[numPixels * 3];
     for (int row = y; row < y + h; row++)
     {
-        memcpy(
-            blockBuffer + ((row - y) * w * 3),
-            imgData + (row * fullWidth + x) * 3,
-            w * 3);
+        memcpy(blockBuffer + ((row - y) * w * 3),
+               imgData + (row * fullWidth + x) * 3,
+               w * 3);
     }
-    // Calculate error.
+
+    // Calculate error using the chosen method
     double blockError = 0.0;
     switch (errorMethod)
     {
@@ -78,7 +128,8 @@ QuadNode *QuadTree::buildRecursive(
         blockError = calculateVarianceError(blockBuffer, numPixels);
         break;
     }
-    // Compute mean per channel.
+
+    // Compute mean color channels
     unsigned long sumR = 0, sumG = 0, sumB = 0;
     for (int i = 0; i < numPixels; i++)
     {
@@ -87,11 +138,12 @@ QuadNode *QuadTree::buildRecursive(
         sumB += blockBuffer[i * 3 + 2];
     }
     delete[] blockBuffer;
+
     node->meanR = double(sumR) / numPixels;
     node->meanG = double(sumG) / numPixels;
     node->meanB = double(sumB) / numPixels;
 
-    // Determine further splitting/not
+    // Check if we should stop subdividing
     if (blockError <= threshold || w <= minBlockSize || h <= minBlockSize)
     {
         node->isLeaf = true;
@@ -105,15 +157,38 @@ QuadNode *QuadTree::buildRecursive(
         node->isLeaf = true;
         return node;
     }
+
+    // Split into 4 children
     node->isLeaf = false;
-    node->children[0] = buildRecursive(imgData, fullWidth, fullHeight, x, y, halfW, halfH, threshold, minBlockSize, errorMethod);
-    node->children[1] = buildRecursive(imgData, fullWidth, fullHeight, x + halfW, y, w - halfW, halfH, threshold, minBlockSize, errorMethod);
-    node->children[2] = buildRecursive(imgData, fullWidth, fullHeight, x, y + halfH, halfW, h - halfH, threshold, minBlockSize, errorMethod);
-    node->children[3] = buildRecursive(imgData, fullWidth, fullHeight, x + halfW, y + halfH, w - halfW, h - halfH, threshold, minBlockSize, errorMethod);
+    node->children[0] = buildRecursive(
+        imgData, fullWidth, fullHeight,
+        x, y,
+        halfW, halfH,
+        threshold, minBlockSize, errorMethod,
+        frames);
+    node->children[1] = buildRecursive(
+        imgData, fullWidth, fullHeight,
+        x + halfW, y,
+        w - halfW, halfH,
+        threshold, minBlockSize, errorMethod,
+        frames);
+    node->children[2] = buildRecursive(
+        imgData, fullWidth, fullHeight,
+        x, y + halfH,
+        halfW, h - halfH,
+        threshold, minBlockSize, errorMethod,
+        frames);
+    node->children[3] = buildRecursive(
+        imgData, fullWidth, fullHeight,
+        x + halfW, y + halfH,
+        w - halfW, h - halfH,
+        threshold, minBlockSize, errorMethod,
+        frames);
 
     return node;
 }
 
+// Recursively writes each leaf node’s mean color into outBuffer
 void QuadTree::reconstructRecursive(const QuadNode *node, unsigned char *outBuffer, int fullWidth)
 {
     if (!node)
@@ -123,6 +198,7 @@ void QuadTree::reconstructRecursive(const QuadNode *node, unsigned char *outBuff
         unsigned char rVal = (unsigned char)(node->meanR + 0.5);
         unsigned char gVal = (unsigned char)(node->meanG + 0.5);
         unsigned char bVal = (unsigned char)(node->meanB + 0.5);
+
         for (int row = node->y; row < node->y + node->height; row++)
         {
             for (int col = node->x; col < node->x + node->width; col++)
@@ -137,20 +213,25 @@ void QuadTree::reconstructRecursive(const QuadNode *node, unsigned char *outBuff
     else
     {
         for (int i = 0; i < 4; i++)
+        {
             reconstructRecursive(node->children[i], outBuffer, fullWidth);
+        }
     }
 }
 
+// Public function to clear the buffer and reconstruct from the quadtree
 void QuadTree::reconstructImage(unsigned char *outBuffer, int fullWidth, int fullHeight)
 {
     memset(outBuffer, 0, fullWidth * fullHeight * 3);
     reconstructRecursive(root, outBuffer, fullWidth);
 }
 
+// Depth and node count utility
 int QuadTree::getTreeDepth() const
 {
     return getTreeDepth(root);
 }
+
 int QuadTree::getTreeDepth(const QuadNode *node) const
 {
     if (!node)
@@ -171,6 +252,7 @@ int QuadTree::getNodeCount() const
 {
     return getNodeCount(root);
 }
+
 int QuadTree::getNodeCount(const QuadNode *node) const
 {
     if (!node)
@@ -181,4 +263,20 @@ int QuadTree::getNodeCount(const QuadNode *node) const
         count += getNodeCount(node->children[i]);
     }
     return count;
+}
+
+// Usage: Create an image for each level.
+vector<vector<uint8_t>> QuadTree::captureFramesPerLevel(int width, int height)
+{
+    int totalDepth = getTreeDepth();
+    vector<vector<uint8_t>> levelFrames;
+    // For each level, reconstruct an image up to that level.
+    for (int level = 1; level <= totalDepth; level++)
+    {
+        vector<uint8_t> frame(width * height * 3, 0);
+        reconstructAtLevel(root, level, 1, frame.data(), width);
+        flipImageVertically(frame.data(), width, height);
+        levelFrames.push_back(move(frame));
+    }
+    return levelFrames;
 }

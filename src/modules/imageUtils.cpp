@@ -1,6 +1,7 @@
 #include "imageUtils.hpp"
 #include <sys/stat.h>
 #include <iostream>
+#include <vector>
 using namespace std;
 
 long getFileSize(const string &filePath)
@@ -51,4 +52,17 @@ FIBITMAP *loadImageAs24Bit(const string &filePath, int &width, int &height)
     }
 
     return converted;
+}
+
+void flipImageVertically(uint8_t* data, int width, int height) {
+    int rowSize = width * 3;
+    vector<uint8_t> temp(rowSize);
+    for (int y = 0; y < height / 2; y++) {
+        uint8_t* rowTop = data + y * rowSize;
+        uint8_t* rowBottom = data + (height - 1 - y) * rowSize;
+        // Swap the two rows
+        memcpy(temp.data(), rowTop, rowSize);
+        memcpy(rowTop, rowBottom, rowSize);
+        memcpy(rowBottom, temp.data(), rowSize);
+    }
 }
