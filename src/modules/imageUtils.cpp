@@ -1,6 +1,7 @@
 #include "imageUtils.hpp"
 #include <sys/stat.h>
 #include <iostream>
+#include <cstring>
 #include <vector>
 using namespace std;
 

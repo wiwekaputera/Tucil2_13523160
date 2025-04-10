@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/tucil2_13523160.dir/src/main.cpp.o CMakeFiles/tucil2_13523160.dir/src/modules/imageUtils.cpp.o CMakeFiles/tucil2_13523160.dir/src/modules/quadTree.cpp.o CMakeFiles/tucil2_13523160.dir/src/modules/errorMethods.cpp.o CMakeFiles/tucil2_13523160.dir/src/modules/gif_maker.cpp.o -o tucil2_13523160  -L/usr/lib -lfreeimage 
