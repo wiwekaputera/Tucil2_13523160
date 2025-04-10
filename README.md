@@ -14,7 +14,7 @@ Program ini merupakan aplikasi CLI kompresi gambar yang menggunakan algoritma di
 
 ## c. Cara Kompilasi
 **Linux:**
-1. Buka direktori root proyek.
+1. Buka direktori root proyek pada terminal.
 2. Jalankan perintah:
     ```bash
     mkdir build && cd build
@@ -26,7 +26,7 @@ Program ini merupakan aplikasi CLI kompresi gambar yang menggunakan algoritma di
     cmake --build .
     ```
 **Windows:**
-1. Buka direktori root proyek (tempat Makefile berada) pada terminal Unix-like.
+1. Buka direktori root proyek pada terminal Unix-like.
 2. Jalankan perintah:
    ```bash
    make
