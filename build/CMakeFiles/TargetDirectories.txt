@@ -1,3 +1,0 @@
-/home/wiweka/Tucil2_13523160/build/CMakeFiles/tucil2_13523160.dir
-/home/wiweka/Tucil2_13523160/build/CMakeFiles/edit_cache.dir
-/home/wiweka/Tucil2_13523160/build/CMakeFiles/rebuild_cache.dir
