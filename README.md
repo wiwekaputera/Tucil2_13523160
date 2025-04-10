@@ -14,7 +14,7 @@ Program ini merupakan aplikasi CLI kompresi gambar yang menggunakan algoritma di
 
 ## c. Cara Kompilasi
 
-1. Buka direktori root proyek (tempat Makefile berada) pada terminal.
+1. Buka direktori root proyek (tempat Makefile berada) pada terminal Unix-like.
 2. Jalankan perintah:
    ```bash
    make

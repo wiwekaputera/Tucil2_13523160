@@ -53,6 +53,7 @@ int main()
         switch (errorMethodChoice)
         {
         case 1:
+            // Batas variance yang lebih realistis
             if (threshold >= 0 && threshold <= 16384)
                 validThreshold = true;
             else
