@@ -29,6 +29,22 @@ void printFramePixels(const vector<uint8_t> &frame, int width, int height, int n
     }
 }
 
+// Check if file exists using stat.
+bool fileExists(const string &filename)
+{
+    struct stat buffer;
+    return (stat(filename.c_str(), &buffer) == 0);
+}
+
+// Simple function to convert a string to lower-case.
+string toLower(const string &s)
+{
+    string result;
+    for (char c : s)
+        result.push_back(tolower(c));
+    return result;
+}
+
 int main()
 {
     // Initialize FreeImage.
@@ -40,8 +56,28 @@ int main()
 
     // 1. Input: Image path.
     string inputImagePath;
-    cout << "Masukkan path gambar yang akan dikompres: ";
-    getline(cin, inputImagePath);
+    while (true)
+    {
+        cout << "Masukkan path gambar yang akan dikompres: ";
+        getline(cin, inputImagePath);
+        if (!fileExists(inputImagePath))
+        {
+            cout << "File tidak ditemukan. Silakan masukkan path yang valid.\n";
+            continue;
+        }
+        // Check if the file path contains an extension
+        size_t pos = inputImagePath.find_last_of(".");
+        if (pos == string::npos)
+        {
+            cout << "Path harus memiliki ekstensi .jpg, .jpeg, atau .png.\n";
+            continue;
+        }
+        string ext = toLower(inputImagePath.substr(pos));
+        if (ext == ".jpg" || ext == ".jpeg" || ext == ".png")
+            break;
+        else
+            cout << "Ekstensi file tidak didukung. Hanya .jpg, .jpeg, atau .png yang diterima.\n";
+    }
 
     // 2. Input: Error calculation method.
     int errorMethodChoice;
@@ -99,8 +135,41 @@ int main()
     // 5. Input: Output image path.
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     string outputImagePath;
-    cout << "Masukkan path output image: ";
-    getline(cin, outputImagePath);
+    while (true)
+    {
+        cout << "Masukkan path output image: ";
+        getline(cin, outputImagePath);
+        size_t pos = outputImagePath.find_last_of(".");
+        if (pos == string::npos)
+        {
+            cout << "Path harus memiliki ekstensi .jpg, .jpeg, atau .png.\n";
+            continue;
+        }
+        string ext = toLower(outputImagePath.substr(pos));
+        if (ext == ".jpg" || ext == ".jpeg" || ext == ".png")
+            break;
+        else
+            cout << "Ekstensi file tidak didukung. Hanya .jpg, .jpeg, atau .png yang diterima.\n";
+    }
+
+    // 6. Input: Output GIF path.
+    string outputGIFPath;
+    while (true)
+    {
+        cout << "Masukkan path output GIF: ";
+        getline(cin, outputGIFPath);
+        size_t pos = outputGIFPath.find_last_of(".");
+        if (pos == string::npos)
+        {
+            cout << "Path harus memiliki ekstensi .gif.\n";
+            continue;
+        }
+        string ext = toLower(outputGIFPath.substr(pos));
+        if (ext == ".gif")
+            break;
+        else
+            cout << "Ekstensi file tidak didukung. Hanya .gif yang diterima.\n";
+    }
 
     // Start time
     clock_t startTime = clock();
@@ -141,10 +210,10 @@ int main()
 
     vector<vector<uint8_t>> levelFrames = qt.captureFramesPerLevel(width, height);
 
-    // Push the last frame 5 more times so that the final image appears longer
+    // Push the last frame 3 more times so that the final image appears longer
     if (!levelFrames.empty())
     {
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 3; i++)
         {
             levelFrames.push_back(levelFrames.back());
         }
@@ -163,7 +232,7 @@ int main()
     qt.reconstructImage(compressedData, width, height);
 
     // Determine output format.
-    FREE_IMAGE_FORMAT outFIF = FreeImage_GetFIFFromFilename(inputImagePath.c_str());
+    FREE_IMAGE_FORMAT outFIF = FreeImage_GetFIFFromFilename(outputImagePath.c_str());
     if (outFIF == FIF_UNKNOWN)
     {
         cerr << "Unknown input image format; defaulting output to JPEG.\n";
@@ -183,7 +252,7 @@ int main()
     double executionTime = double(endTime - startTime) / CLOCKS_PER_SEC;
 
     // Create animated GIF from recorded frames.
-    if (!createAnimatedGif(levelFrames, width, height, 50, "quadtree_build.gif"))
+    if (!createGIF(levelFrames, width, height, 50, outputGIFPath))
         cerr << "GIF creation failed." << "\n";
 
     endTime = clock();
@@ -205,6 +274,7 @@ int main()
     cout << "Kedalaman Pohon: " << qt.getTreeDepth() << "\n";
     cout << "Banyak Simpul Pohon: " << qt.getNodeCount() << "\n";
     cout << "Gambar Hasil Kompresi Disimpan pada: " << outputImagePath << "\n";
+    cout << "GIF Disimpan pada: " << outputGIFPath << "\n";
 
     FreeImage_DeInitialise();
     return 0;

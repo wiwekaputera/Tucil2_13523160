@@ -1,13 +1,14 @@
-// gif_maker.cpp
 #include "gif_maker.hpp"
 #include "gif.h"
 #include <cstdio>
 
-bool createAnimatedGif(
-    const std::vector<std::vector<uint8_t>> &frames,
+using namespace std;
+
+bool createGIF(
+    const vector<vector<uint8_t>> &frames,
     int width, int height,
     int delayMs,
-    const std::string &outputPath)
+    const string &outputPath)
 {
     if (frames.empty() || width <= 0 || height <= 0)
         return false;
@@ -16,11 +17,10 @@ bool createAnimatedGif(
     if (!GifBegin(&writer, outputPath.c_str(), width, height, delayMs))
         return false;
 
-    // Each frame is assumed to be 3 channels (RGB).
-    // gif.h expects 4 channels per pixel (RGBA), so we convert.
+    // Convert 3 channels (RGB) to 4 channels per pixel (RGBA).
     for (const auto &frame : frames)
     {
-        std::vector<uint8_t> rgba(width * height * 4);
+        vector<uint8_t> rgba(width * height * 4);
         for (int i = 0; i < width * height; i++)
         {
             rgba[i * 4 + 0] = frame[i * 3 + 2];
