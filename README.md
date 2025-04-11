@@ -50,7 +50,7 @@ Selain itu, program juga menghasilkan sebuah GIF yang menunjukkan proses pembang
    ```bash
    ./tucil2_13523160
    ```
-   **Windows:**
+**Windows:**
    ```
 1. Pada direktori root, jalankan program dengan perintah:
    ```bash
