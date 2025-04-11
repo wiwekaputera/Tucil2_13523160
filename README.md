@@ -4,6 +4,8 @@
 
 Program ini merupakan aplikasi CLI kompresi gambar yang menggunakan algoritma divide and conquer dengan pendekatan quadtree. Program memuat sebuah gambar, mengkonversinya ke format 24-bit RGB, dan kemudian membangun quadtree berdasarkan metode perhitungan error yang dipilih oleh pengguna (Variance, MAD, Max Pixel Difference, atau Entropy). Hasil dari proses tersebut adalah gambar terkompres yang disimpan ke file output, di mana tiap blok direpresentasikan oleh nilai rata-rata warnanya.
 
+Selain itu, program juga menghasilkan sebuah GIF yang menunjukkan proses pembangunan final compressed image.
+
 ## b. Requirement & Instalasi
 
 - **Compiler:** g++
