@@ -25,18 +25,19 @@ Selain itu, program juga menghasilkan sebuah GIF yang menunjukkan proses pembang
 
 1. Buka direktori root proyek pada terminal.
 2. Jalankan perintah:
-    ```bash
-    mkdir build && cd build
-    ```
-    ```bash
-    cmake ..
-    ```
-    ```bash
-    cmake --build .
-    ```
-   **Windows:**
-3. Buka direktori root proyek pada terminal Unix-like.
-4. Jalankan perintah:
+   ```bash
+   mkdir build && cd build
+   ```
+   ```bash
+   cmake ..
+   ```
+   ```bash
+   cmake --build .
+   ```
+
+**Windows:**
+1. Buka direktori root proyek pada terminal Unix-like.
+2. Jalankan perintah:
    ```bash
    make
    ```
