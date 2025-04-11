@@ -1,8 +1,6 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -O2 \
-           -IC:/FreeImage/include \
-
-LDFLAGS = -LC:/FreeImage/lib -lfreeimage \
+CXXFLAGS = -std=c++17 -Wall -O2 -Ithirdparty/FreeImage/include
+LDFLAGS = -Lthirdparty/FreeImage/lib -lfreeimage
 
 
 SRC_DIR = src
@@ -32,4 +30,5 @@ run: $(EXEC)
 	./$(EXEC)
 
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(OBJ_DIR)
+	rm -f $(EXEC)
